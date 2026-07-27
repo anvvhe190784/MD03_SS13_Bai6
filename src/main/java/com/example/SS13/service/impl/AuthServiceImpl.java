@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.example.SS13.dto.LoginRequest;
+
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -31,5 +33,17 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         return userRepository.save(user);
+    }
+
+    @Override
+    public User login(LoginRequest request) {
+        User user = userRepository.findByUsername(request.getUsername())
+                .orElseThrow(() -> new IllegalArgumentException("username or password incorrect"));
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("username or password incorrect");
+        }
+
+        return user;
     }
 }

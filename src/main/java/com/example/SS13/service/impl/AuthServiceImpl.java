@@ -10,12 +10,21 @@ import org.springframework.stereotype.Service;
 
 import com.example.SS13.dto.LoginRequest;
 
+import com.example.SS13.security.CustomUserDetails;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
 
     @Override
     public User register(RegisterRequest request) {
@@ -37,13 +46,18 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public User login(LoginRequest request) {
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new IllegalArgumentException("username or password incorrect"));
+        try {
+            // AuthenticationManager tự động gọi CustomUserDetailsService.loadUserByUsername()
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+            );
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+            return userDetails.getUser();
+        } catch (BadCredentialsException | UsernameNotFoundException e) {
             throw new IllegalArgumentException("username or password incorrect");
         }
-
-        return user;
     }
 }
